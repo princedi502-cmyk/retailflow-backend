@@ -1,6 +1,5 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
-import ssl
 
 class Database:
     client : AsyncIOMotorClient = None
@@ -20,7 +19,7 @@ async def connect_to_mongo():
         mongo_url = settings.MONGO_URL
         print(f"Attempting Atlas connection: {mongo_url[:50]}...")
         
-        # Atlas connection with flexible SSL settings for production compatibility
+        # Atlas connection with proper SSL settings for production compatibility
         db_manager.client = AsyncIOMotorClient(
             mongo_url,
             serverSelectionTimeoutMS=30000,
@@ -31,11 +30,10 @@ async def connect_to_mongo():
             w=1,
             maxPoolSize=50,
             minPoolSize=5,
-            # SSL settings that work across different environments
+            # Use MongoDB Atlas's recommended SSL settings
             tls=True,
-            tlsAllowInvalidCertificates=True,  # Allow for production compatibility
-            tlsCAFile=None,  # Use system CA
-            ssl_cert_reqs='CERT_NONE'  # Don't verify certs for compatibility
+            tlsAllowInvalidCertificates=False,
+            tlsAllowInvalidHostnames=False
         )
         
         # Test connection
@@ -80,7 +78,7 @@ async def connect_to_mongo():
             # In production, try alternative Atlas connection before failing
             print("🔄 Trying alternative Atlas connection...")
             try:
-                # Try with different SSL settings
+                # Try with different SSL settings for problematic environments
                 mongo_url = settings.MONGO_URL
                 db_manager.client = AsyncIOMotorClient(
                     mongo_url,
@@ -90,14 +88,16 @@ async def connect_to_mongo():
                     retryWrites=True,
                     retryReads=True,
                     w=1,
-                    # Minimal SSL settings
-                    tls=False  # Try without TLS
+                    # Alternative SSL settings for restrictive environments
+                    tls=True,
+                    tlsAllowInvalidCertificates=True,  # Allow self-signed certs
+                    tlsAllowInvalidHostnames=True   # Allow hostname mismatches
                 )
                 
                 # Test connection
                 db_manager.client.admin.command('ping')
                 db_manager.db = db_manager.client[settings.DATABASE_NAME]
-                print(f"✅ Connected to Mongo Atlas (no TLS): {settings.DATABASE_NAME}")
+                print(f"✅ Connected to Mongo Atlas (relaxed SSL): {settings.DATABASE_NAME}")
                 return
                 
             except Exception as alt_error:
