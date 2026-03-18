@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -73,6 +74,21 @@ app = FastAPI(
 
 # Setup error handlers
 setup_error_handlers(app)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    
+    print("🔥 ERROR OCCURRED:")
+    traceback.print_exc()   # ✅ full error in console
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": True,
+            "message": str(exc),  # ✅ show real error
+        }
+    )
 
 # Add request validation middleware
 add_request_validation_middleware(app)

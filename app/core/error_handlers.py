@@ -142,24 +142,18 @@ async def security_error_handler(request: Request, exc: SecurityError) -> JSONRe
     )
 
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle unexpected exceptions"""
-    # Log full error details for debugging
-    logger.error(
-        f"Unhandled exception: {type(exc).__name__}: {str(exc)} - "
-        f"IP: {request.client.host if request.client else 'unknown'} - "
-        f"Path: {request.url.path}"
-    )
-    logger.error(f"Traceback: {traceback.format_exc()}")
+    """Handle unexpected exceptions with detailed logging"""
+    import traceback
     
-    response_data = create_error_response(
-        status_code=500,
-        message="An internal server error occurred",
-        error_code="INTERNAL_ERROR"
-    )
-    
+    print("🔥 ERROR OCCURRED:")
+    traceback.print_exc()   # ✅ full error in console
+
     return JSONResponse(
         status_code=500,
-        content=response_data
+        content={
+            "error": True,
+            "message": str(exc),  # ✅ show real error
+        }
     )
 
 def setup_error_handlers(app):
