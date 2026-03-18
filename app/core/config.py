@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     LOG_LEVEL: str = "INFO"
     REDIS_URL: str = "redis://localhost:6379"
+    
+    # Environment detection
+    ENVIRONMENT: str = "development"
+    RAILWAY_ENVIRONMENT: str = "development"
 
     model_config = SettingsConfigDict(env_file=".env", extra='ignore')
 

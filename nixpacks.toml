@@ -1,0 +1,19 @@
+# Nixpacks configuration for Railway deployment
+[phases.setup]
+nixPkgs = ["python310", "gcc"]
+
+[phases.install]
+cmds = [
+  "python -m pip install --upgrade pip",
+  "pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "sh start.sh"
+
+[variables]
+PORT = "8000"
+PYTHONPATH = "/app"
