@@ -13,16 +13,16 @@ async def connect_to_mongo():
         # Convert SRV to direct connection for Railway
         mongo_url = settings.MONGO_URL.replace("mongodb+srv://", "mongodb://")
         
-        # Try connection with minimal SSL settings
+        # Try connection with proper TLS settings
         db_manager.client = AsyncIOMotorClient(
             mongo_url,
-            ssl=True,
-            ssl_cert_reqs=None,  # Don't require SSL cert verification
+            tls=True,
+            tlsAllowInvalidCertificates=True,
             serverSelectionTimeoutMS=30000,
             socketTimeoutMS=30000,
             connectTimeoutMS=30000,
-            retryWrites=False,  # Disable retry writes for better compatibility
-            w=1  # Simple write concern
+            retryWrites=False,
+            w=1
         )
         
         # Test connection
@@ -32,18 +32,18 @@ async def connect_to_mongo():
         
     except Exception as e:
         print(f"MongoDB connection failed: {e}")
-        # Last resort - try without any SSL
+        # Last resort - try without TLS
         try:
             mongo_url = settings.MONGO_URL.replace("mongodb+srv://", "mongodb://")
             db_manager.client = AsyncIOMotorClient(
                 mongo_url,
-                ssl=False,
+                tls=False,
                 serverSelectionTimeoutMS=30000,
                 socketTimeoutMS=30000,
                 connectTimeoutMS=30000
             )
             db_manager.db = db_manager.client[settings.DATABASE_NAME]
-            print(f"connected to Mongo (no SSL):{settings.DATABASE_NAME}")
+            print(f"connected to Mongo (no TLS):{settings.DATABASE_NAME}")
         except Exception as fallback_error:
             print(f"MongoDB fallback connection failed: {fallback_error}")
             raise
