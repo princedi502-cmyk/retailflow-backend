@@ -22,8 +22,11 @@ async def lifespan(app: FastAPI):
     
     await connect_to_mongo()
     
-    # Initialize cache manager
-    await cache_manager.connect()
+    # Initialize cache manager (non-blocking)
+    try:
+        await cache_manager.connect()
+    except Exception as e:
+        print(f"Cache connection failed, continuing without cache: {e}")
     
     # Initialize database monitoring (safe mode)
     try:
