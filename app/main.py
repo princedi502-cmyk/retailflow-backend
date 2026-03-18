@@ -22,11 +22,12 @@ async def lifespan(app: FastAPI):
     
     await connect_to_mongo()
     
-    # Initialize cache manager (non-blocking)
-    try:
-        await cache_manager.connect()
-    except Exception as e:
-        print(f"Cache connection failed, continuing without cache: {e}")
+    # Initialize cache manager (disabled for Railway)
+    # try:
+    #     await cache_manager.connect()
+    # except Exception as e:
+    #     print(f"Cache connection failed, continuing without cache: {e}")
+    print("Cache manager disabled for Railway deployment")
     
     # Initialize database monitoring (safe mode)
     try:
@@ -84,7 +85,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 if not settings.DEBUG:
     app.add_middleware(
         TrustedHostMiddleware, 
-        allowed_hosts=["localhost", "127.0.0.1", "*.yourdomain.com"]
+        allowed_hosts=["*"]  # allow all (quick fix)
     )
 
 # CORS configuration - Fixed to restrict headers
