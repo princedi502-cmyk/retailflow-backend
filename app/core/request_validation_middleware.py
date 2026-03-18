@@ -64,6 +64,7 @@ class RequestValidationMiddleware:
                request.headers.get("content-type", "").startswith("application/json"):
                 try:
                     body = await request.body()
+
                     if len(body) > MAX_JSON_SIZE:
                         security_event_logger.log_security_violation(
                             "JSON_TOO_LARGE",
@@ -74,6 +75,11 @@ class RequestValidationMiddleware:
                         return self.create_error_response(
                             413, "JSON payload too large"
                         )
+                    # 🔥 CRITICAL FIX — reattach body so FastAPI can read it again
+                    async def receive():
+                        return {"type": "http.request", "body": body}
+                    
+                    request._receive = receive
                     
                     # Parse and validate JSON structure
                     try:
@@ -96,16 +102,13 @@ class RequestValidationMiddleware:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
-            # Log unexpected errors
             security_event_logger.log_security_violation(
                 "REQUEST_VALIDATION_ERROR",
                 ip_address=client_info["ip_address"],
                 endpoint=client_info["endpoint"],
                 details=str(e)
             )
-            return self.create_error_response(
-                500, "Internal server error during request validation"
-            )
+            raise e 
     
     def validate_json_fields(self, data: Any, client_info: Dict[str, str], path: str = "") -> None:
         """Recursively validate JSON fields against limits"""
