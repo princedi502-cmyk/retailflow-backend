@@ -134,8 +134,7 @@ app.include_router(websocket.router)
 
 
 @app.get("/health")
-@limiter.limit("100/minute")
-async def health_check(request: Request):
+async def health_check():
     return {
         "status": "online",
         "database": "connected",
