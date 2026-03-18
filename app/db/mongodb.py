@@ -13,10 +13,13 @@ async def connect_to_mongo():
     db_manager.client = AsyncIOMotorClient(
         settings.MONGO_URL,
         tls=True,
-        tlsAllowInvalidCertificates=False,
+        tlsAllowInvalidCertificates=True,  # Allow invalid certs for Railway deployment
+        tlsCAFile=None,
         serverSelectionTimeoutMS=30000,
         socketTimeoutMS=30000,
-        connectTimeoutMS=30000
+        connectTimeoutMS=30000,
+        retryWrites=True,
+        w="majority"
     )
     db_manager.db = db_manager.client[settings.DATABASE_NAME]
     print(f"connected to Mongo:{settings.DATABASE_NAME}")
