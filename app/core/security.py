@@ -189,17 +189,15 @@ def _normalize(password: str, salt: str) -> str:
     return hashlib.sha256(combined).hexdigest()
 
 
-def hash_password_with_salt(password: str, salt: str = None) -> tuple[str, str]:
-    if not isinstance(password, str):
-        password = str(password)
-
-    if salt is None:
-        salt = generate_salt()
-
+def hash_password_with_salt(password: str, salt: str = None):
+    print("🔥 RAW PASSWORD LENGTH:", len(password))
+    
     normalized = _normalize(password, salt)
-
+    
+    print("✅ NORMALIZED LENGTH:", len(normalized))
+    
     hashed = pwd_context.hash(normalized)
-
+    
     return hashed, salt
 
 
