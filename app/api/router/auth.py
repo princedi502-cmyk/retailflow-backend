@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr, validator, BaseModel
-
+import asyncio
 from slowapi.util import get_remote_address
 from bson import ObjectId
 
@@ -178,9 +178,22 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             detail="Invalid email format"
         )
 
-    user = await db_manager.db["users"].find_one(
-        {"email": sanitized_email}
-    )
+    try:
+        user = await asyncio.wait_for(
+            db_manager.db["users"].find_one({"email": sanitized_email}),
+            timeout=5
+        )
+    except asyncio.TimeoutError:
+        print("🔥 MONGODB TIMEOUT DETECTED - Connection hanging!")
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection timeout. Please try again."
+        )
+
+
+    # user = await db_manager.db["users"].find_one(
+    #     {"email": sanitized_email}
+    # )
 
     if not user:
         raise HTTPException(
@@ -198,7 +211,8 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     
     # Handle both old users (no salt) and new users (with salt)
     password_valid = False
-    if "salt" in user:
+    if user.get("salt"):
+    # if "salt" in user:
         # New user with salted password
         password_valid = verify_password_with_salt(
             sanitized_password, user["hashed_password"], user["salt"]
