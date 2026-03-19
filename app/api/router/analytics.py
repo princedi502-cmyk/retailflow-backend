@@ -347,7 +347,14 @@ async def this_month(
         {
             "$group": {
                 "_id": None,
-                "total_revenue": {"$sum": "$total_price"},
+                "total_revenue": {
+                    "$sum": {
+                        "$multiply": [
+                            {"$ifNull": ["$items.quantity", 0]},
+                            {"$ifNull": ["$items.price", 0]}
+                        ]
+                    }
+                },
                 "items_sold": {"$sum": {"$ifNull": ["$items.quantity", 0]}}
             }
         }
@@ -356,7 +363,7 @@ async def this_month(
     result = await aggregation_optimizer.optimized_aggregate(
         collection_name="orders",
         pipeline=pipeline,
-        cache_key="this_month_stats",
+        cache_key=f"this_month",
         cache_ttl=180  # 3 minutes for current month data
     )
 
