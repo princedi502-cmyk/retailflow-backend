@@ -210,7 +210,7 @@ async def monthly_revenue(
     
     # Default to current year if not provided
     if year is None:
-        year = datetime.now().year
+        year = datetime.now(timezone.utc).year
     
     # Validate year format
     if not re.match(r'^\d{4}$', str(year)):
