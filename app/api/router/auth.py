@@ -8,7 +8,7 @@ from bson import ObjectId
 from app.schemas.user_schema import UserCreate, UserResponse, PasswordChange, EmailVerificationRequest, ResendVerificationRequest, PasswordResetRequest, PasswordResetConfirm
 from app.db.mongodb import db_manager
 from app.core.security import (
-    hash_password_with_salt, verify_password_with_salt, create_access_token, 
+    hash_password, verify_password, create_access_token, 
     create_refresh_token, verify_token, get_token_payload, is_account_locked,
     get_lockout_time_remaining, should_lock_account, lock_account,
     reset_failed_attempts, increment_failed_attempts, MAX_FAILED_ATTEMPTS,
