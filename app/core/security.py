@@ -189,34 +189,43 @@ def _normalize(password: str, salt: str) -> str:
     return hashlib.sha256(combined).hexdigest()
 
 
-def hash_password_with_salt(password: str, salt: str = None):
-    print("🔥 RAW PASSWORD LENGTH:", len(password))
+# def hash_password_with_salt(password: str, salt: str = None):
+#     print("🔥 RAW PASSWORD LENGTH:", len(password))
     
-    normalized = _normalize(password, salt)
+#     normalized = _normalize(password, salt)
     
-    print("✅ NORMALIZED LENGTH:", len(normalized))
+#     print("✅ NORMALIZED LENGTH:", len(normalized))
     
-    hashed = pwd_context.hash(normalized)
+#     hashed = pwd_context.hash(normalized)
     
-    return hashed, salt
+#     return hashed, salt
 
 
-def verify_password_with_salt(plain_password: str, hashed_password: str, salt: str) -> bool:
-    normalized = _normalize(plain_password, salt)
-    return pwd_context.verify(normalized, hashed_password)
+# def verify_password_with_salt(plain_password: str, hashed_password: str, salt: str) -> bool:
+#     normalized = _normalize(plain_password, salt)
+#     return pwd_context.verify(normalized, hashed_password)
 
 
 # ------------------- LEGACY SUPPORT -------------------
 
+# def hash_password(password: str) -> str:
+#     hashed, _ = hash_password_with_salt(password)
+#     return hashed
+
+
+# def verify_password(plain_password: str, hashed_password: str) -> bool:
+#     # fallback (no salt)
+#     normalized = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+#     return pwd_context.verify(normalized, hashed_password)
+
 def hash_password(password: str) -> str:
-    hashed, _ = hash_password_with_salt(password)
-    return hashed
+    password = password.encode("utf-8")[:72].decode("utf-8", "ignore")
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # fallback (no salt)
-    normalized = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
-    return pwd_context.verify(normalized, hashed_password)
+    plain_password = plain_password.encode("utf-8")[:72].decode("utf-8", "ignore")
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 # ------------------- JWT -------------------
