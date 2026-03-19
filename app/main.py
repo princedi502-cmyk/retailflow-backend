@@ -16,54 +16,89 @@ from app.api.router import auth, products, orders, analytics, supplier, db_perfo
 from app.core.config import settings
 from app.core.cache import cache_manager
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Setup security logging
     setup_security_logging()
-    
-    await connect_to_mongo()
-    
-    # Initialize cache manager (disabled for Railway)
-    # try:
-    #     await cache_manager.connect()
-    # except Exception as e:
-    #     print(f"Cache connection failed, continuing without cache: {e}")
-    print("Cache manager disabled for Railway deployment")
-    
-    # Initialize database monitoring (safe mode)
+
+    # ✅ Safe Mongo connection
     try:
-        from app.core.db_monitor import get_database_monitor
-        from app.db.mongodb import db_manager
-        
-        monitor = get_database_monitor(db_manager.client)
-        config = monitor.config
-        
-        # Only start monitoring if enabled and in safe mode
-        if config.get("enable_stats", True) and config.get("safe_mode", True):
-            print("Database monitoring initialized in safe mode")
-            # Don't auto-start continuous monitoring - let user control it
-        else:
-            print("Database monitoring disabled or safe mode off")
+        await connect_to_mongo()
+        print("MongoDB connected")
     except Exception as e:
-        print(f"Failed to initialize database monitoring: {e}")
-    
+        print(f"MongoDB connection failed: {e}")
+
+    # ✅ Safe Redis connection
+    try:
+        await cache_manager.connect()
+        print("Redis connected")
+    except Exception as e:
+        print(f"Redis connection failed: {e}")
+
     yield
-    
-    # Cleanup monitoring on shutdown
+
+    # Shutdown
     try:
-        from app.core.db_monitor import get_database_monitor
-        from app.db.mongodb import db_manager
-        monitor = get_database_monitor(db_manager.client)
-        if monitor.is_monitoring:
-            await monitor.stop_continuous_monitoring()
-            print("Database monitoring stopped")
-    except Exception as e:
-        print(f"Error stopping database monitoring: {e}")
+        await cache_manager.disconnect()
+    except:
+        pass
+
+    try:
+        await close_mongo_connection()
+    except:
+        pass
+
+
+
+
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Setup security logging
+#     setup_security_logging()
     
-    # Disconnect cache manager
-    await cache_manager.disconnect()
+#     await connect_to_mongo()
     
-    await close_mongo_connection()
+#     # Initialize cache manager (disabled for Railway)
+#     # try:
+#     #     await cache_manager.connect()
+#     # except Exception as e:
+#     #     print(f"Cache connection failed, continuing without cache: {e}")
+#     print("Cache manager disabled for Railway deployment")
+    
+#     # Initialize database monitoring (safe mode)
+#     try:
+#         from app.core.db_monitor import get_database_monitor
+#         from app.db.mongodb import db_manager
+        
+#         monitor = get_database_monitor(db_manager.client)
+#         config = monitor.config
+        
+#         # Only start monitoring if enabled and in safe mode
+#         if config.get("enable_stats", True) and config.get("safe_mode", True):
+#             print("Database monitoring initialized in safe mode")
+#             # Don't auto-start continuous monitoring - let user control it
+#         else:
+#             print("Database monitoring disabled or safe mode off")
+#     except Exception as e:
+#         print(f"Failed to initialize database monitoring: {e}")
+    
+#     yield
+    
+#     # Cleanup monitoring on shutdown
+#     try:
+#         from app.core.db_monitor import get_database_monitor
+#         from app.db.mongodb import db_manager
+#         monitor = get_database_monitor(db_manager.client)
+#         if monitor.is_monitoring:
+#             await monitor.stop_continuous_monitoring()
+#             print("Database monitoring stopped")
+#     except Exception as e:
+#         print(f"Error stopping database monitoring: {e}")
+    
+#     # Disconnect cache manager
+#     await cache_manager.disconnect()
+    
+#     await close_mongo_connection()
 
 
 app = FastAPI(
