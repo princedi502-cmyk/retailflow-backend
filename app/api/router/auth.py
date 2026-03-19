@@ -81,9 +81,11 @@ async def register(request: Request, user_in: UserCreate):
     user_dict = sanitized_user.copy()
     
     # Hash password with unique salt
-    hashed_password, salt = hash_password_with_salt(sanitized_user["password"])
+    # hashed_password, salt = hash_password_with_salt(sanitized_user["password"])
+    # Hash password using normal method
+    hashed_password = hash_password(sanitized_user["password"])
     user_dict["hashed_password"] = hashed_password
-    user_dict["salt"] = salt
+    # user_dict["salt"] = salt
     
     # Add email verification fields
     user_dict["is_email_verified"] = False
