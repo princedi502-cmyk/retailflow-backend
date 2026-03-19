@@ -222,8 +222,9 @@ async def monthly_revenue(
     pipeline = [
         {
             "$match": {
-                "$expr": {
-                    "$eq": [{"$year": {"$toDate": "$created_at"}}, year]
+                "created_at": {
+                    "$gte": datetime(year, 1, 1, tzinfo=timezone.utc),
+                    "$lt": datetime(year + 1, 1, 1, tzinfo=timezone.utc)
                 }
             }
         },
