@@ -139,26 +139,46 @@ if not settings.DEBUG:
         allowed_hosts=["*"]  # allow all (quick fix)
     )
 
-# CORS configuration - Fixed to restrict headers
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "CONNECT"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "X-Requested-With",
-        "Accept",
-        "Origin",
-        "Sec-WebSocket-Key",
-        "Sec-WebSocket-Version",
-        "Sec-WebSocket-Protocol",
-        "Sec-WebSocket-Accept",
-        "Connection",
-        "Upgrade"
-    ],
-)
+# CORS configuration - Dynamic based on environment
+origins = settings.ALLOWED_ORIGINS
+
+# Add production origins if not in development
+if not settings.DEBUG:
+    origins.extend([
+        "https://retailflow-backend-ps8t.onrender.com",
+        "https://retail-flow.netlify.app"
+    ])
+
+# Fallback: Allow all origins in production if CORS issues persist
+if not settings.DEBUG:
+    print(f"CORS Origins: {origins}")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Temporary fix for production CORS issues
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "CONNECT"],
+        allow_headers=["*"],  # Allow all headers
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "CONNECT"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+            "Sec-WebSocket-Key",
+            "Sec-WebSocket-Version",
+            "Sec-WebSocket-Protocol",
+            "Sec-WebSocket-Accept",
+            "Connection",
+            "Upgrade"
+        ],
+    )
 
 # Response compression middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
