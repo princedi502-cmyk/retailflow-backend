@@ -12,7 +12,9 @@ from app.core.security_logger import setup_security_logging
 from app.core.request_validation_middleware import add_request_validation_middleware
 
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
-from app.api.router import auth, products, orders, analytics, supplier, db_performance, cache_management, websocket
+from app.db.init_customer_data import initialize_customer_system
+from app.db.shop_settings_indexes import create_shop_settings_indexes
+from app.api.router import auth, products, orders, analytics, supplier, db_performance, cache_management, websocket, customers, employees, bills, shop_settings
 from app.core.config import settings
 from app.core.cache import cache_manager
 
@@ -25,6 +27,17 @@ async def lifespan(app: FastAPI):
     try:
         await connect_to_mongo()
         print("MongoDB connected")
+        
+        # Initialize customer management system
+        await initialize_customer_system()
+        print("Customer management system initialized")
+        
+        # Initialize shop settings indexes
+        try:
+            await create_shop_settings_indexes()
+            print("Shop settings indexes created")
+        except Exception as e:
+            print(f"Shop settings indexes creation failed (may already exist): {e}")
     except Exception as e:
         print(f"MongoDB connection failed: {e}")
 
@@ -121,7 +134,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "error": True,
-            "message": str(exc),  # ✅ show real error
+            "message": str(exc),  # show real error
         }
     )
 
@@ -160,24 +173,13 @@ if not settings.DEBUG:
         allow_headers=["*"],  # Allow all headers
     )
 else:
+    # Development CORS - allow localhost origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=["*"],  # Allow all origins for development
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "CONNECT"],
-        allow_headers=[
-            "Authorization",
-            "Content-Type",
-            "X-Requested-With",
-            "Accept",
-            "Origin",
-            "Sec-WebSocket-Key",
-            "Sec-WebSocket-Version",
-            "Sec-WebSocket-Protocol",
-            "Sec-WebSocket-Accept",
-            "Connection",
-            "Upgrade"
-        ],
+        allow_headers=["*"],  # Allow all headers
     )
 
 # Response compression middleware
@@ -206,6 +208,10 @@ app.include_router(supplier.router)
 app.include_router(db_performance.router)
 app.include_router(cache_management.router)
 app.include_router(websocket.router)
+app.include_router(customers.router)
+app.include_router(employees.router)
+app.include_router(bills.router)
+app.include_router(shop_settings.router)
 
 
 @app.get("/health")

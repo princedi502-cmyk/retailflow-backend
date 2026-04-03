@@ -61,31 +61,22 @@ async def create_order(
     
     # Get updated sales metrics for WebSocket broadcast
     try:
-        # Create a mock request object for the sales_summary function
-        class MockRequest:
-            def __init__(self):
-                pass
-        
-        mock_request = MockRequest()
-        sales_data = await sales_summary(mock_request, current_user)
+        sales_data = await sales_summary(days=7, user=current_user)
         
         print(f"Fresh sales data after order creation: {sales_data}")
         
         # Get additional analytics data for owner dashboard
         try:
             from app.api.router.analytics import this_month, monthly_revenue, category_sales
-            
-            # Create mock request for additional analytics
-            mock_request = MockRequest()
-            
+
             # Get this month's analytics
-            this_month_data = await this_month(mock_request, current_user)
-            
+            this_month_data = await this_month(user=current_user)
+
             # Get monthly revenue data
-            monthly_rev_data = await monthly_revenue(mock_request, current_user)
-            
+            monthly_rev_data = await monthly_revenue(user=current_user)
+
             # Get category sales data
-            category_sales_data = await category_sales(mock_request, current_user)
+            category_sales_data = await category_sales(limit=20, user=current_user)
             
             # Broadcast comprehensive update to all connected users
             await websocket_manager.broadcast_sales_update({
@@ -132,7 +123,7 @@ async def create_order(
 async def get_orders(
     page: int = Query(1, ge=1, le=1000, description="Page number for pagination"),
     limit: int = Query(10, ge=1, le=100, description="Number of items per page"),
-    user=Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
 
     return await get_orders_service(page, limit)

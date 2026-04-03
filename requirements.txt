@@ -13,3 +13,8 @@ pydantic-settings
 email-validator
 pydantic[email]
 redis
+
+# Bill generation and WhatsApp
+reportlab>=4.0.0
+pywhatkit>=5.4.0
+Pillow>=10.0.0

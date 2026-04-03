@@ -4,9 +4,13 @@ Run this script once to create all necessary indexes for production
 """
 
 from app.db.mongodb import db_manager
+from app.db.employee_performance_indexes import create_employee_performance_indexes
+
 
 def create_indexes():
     """Create all necessary database indexes"""
+    
+    db = db_manager.db
     
     # Users collection indexes
     db.users.create_index("email", unique=True)
@@ -40,6 +44,12 @@ def create_indexes():
     db.orders.create_index([("status", 1), ("created_at", -1)])  # Status tracking
     db.orders.create_index([("items.name", 1), ("items.quantity", 1)])  # Product quantity analysis
     
+    # Employee performance related indexes for orders
+    db.orders.create_index("employee_id")
+    db.orders.create_index([("employee_id", 1), ("created_at", -1)])
+    db.orders.create_index([("employee_id", 1), ("status", 1), ("created_at", -1)])
+    db.orders.create_index([("employee_id", 1), ("created_at", -1), ("total_amount", -1)])
+    
     # Suppliers collection indexes
     db.suppliers.create_index("name", unique=True)
     db.suppliers.create_index("email", unique=True)
@@ -48,6 +58,18 @@ def create_indexes():
     db.purchase_orders.create_index("supplier_id")
     db.purchase_orders.create_index("status")
     db.purchase_orders.create_index("created_at")
+    
+    # Customers collection indexes
+    db.customers.create_index("email", unique=True)
+    db.customers.create_index("phone", unique=True, sparse=True)
+    db.customers.create_index("name")
+    db.customers.create_index([("created_at", -1)])
+    db.customers.create_index([("total_orders", -1)])
+    db.customers.create_index([("total_spent", -1)])
+    
+    # Create employee performance specific indexes
+    import asyncio
+    asyncio.run(create_employee_performance_indexes())
     
     print("✅ All database indexes created successfully!")
 

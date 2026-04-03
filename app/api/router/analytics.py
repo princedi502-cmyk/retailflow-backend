@@ -465,6 +465,135 @@ async def get_top_product(
     return result
 
 
+@router.get("/workforce")
+@limiter.limit("50/minute")
+async def workforce_analytics(
+    request: Request,
+    user=Depends(require_owner)
+):
+    """Workforce analytics including total employees, active employees, and total sales."""
+    
+    try:
+        # Get total employees (excluding owners) from users collection
+        users_collection = db_manager.db["users"]
+        
+        total_employees_pipeline = [
+            {
+                "$match": {
+                    "role": {"$ne": "owner"}  # Exclude owners from employee count
+                }
+            },
+            {
+                "$count": "total_employees"
+            }
+        ]
+        
+        total_employees_result = await aggregation_optimizer.optimized_aggregate(
+            collection_name="users",
+            pipeline=total_employees_pipeline,
+            cache_key="total_employees",
+            cache_ttl=600  # 10 minutes cache
+        )
+        
+        # Get active employees (employees who have created orders in the last 30 days)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        
+        active_employees_pipeline = [
+            {
+                "$match": {
+                    "created_at": {"$gte": thirty_days_ago}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$user_id"
+                }
+            },
+            {
+                "$count": "active_employees"
+            }
+        ]
+        
+        active_employees_result = await aggregation_optimizer.optimized_aggregate(
+            collection_name="orders",
+            pipeline=active_employees_pipeline,
+            cache_key="active_employees",
+            cache_ttl=300  # 5 minutes cache
+        )
+        
+        # Get total sales from all employees (excluding owner-created orders)
+        total_sales_pipeline = [
+            {
+                "$lookup": {
+                    "from": "users",
+                    "let": {
+                        "user_object_id": {
+                            "$convert": {
+                                "input": "$user_id",
+                                "to": "objectId",
+                                "onError": None,
+                                "onNull": None
+                            }
+                        }
+                    },
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "$expr": {"$eq": ["$_id", "$$user_object_id"]}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 1,
+                                "role": 1
+                            }
+                        }
+                    ],
+                    "as": "user_info"
+                }
+            },
+            {"$unwind": "$user_info"},
+            {
+                "$match": {
+                    "user_info.role": {"$ne": "owner"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_sales": {"$sum": "$total_price"}
+                }
+            }
+        ]
+        
+        total_sales_result = await aggregation_optimizer.optimized_aggregate(
+            collection_name="orders",
+            pipeline=total_sales_pipeline,
+            cache_key="total_sales",
+            cache_ttl=300  # 5 minutes cache
+        )
+        
+        # Extract values or default to 0
+        total_employees = total_employees_result[0]["total_employees"] if total_employees_result else 0
+        active_employees = active_employees_result[0]["active_employees"] if active_employees_result else 0
+        total_sales = total_sales_result[0]["total_sales"] if total_sales_result else 0
+        
+        return {
+            "total_employees": total_employees,
+            "active_employees": active_employees,
+            "total_sales": total_sales
+        }
+        
+    except Exception as e:
+        print(f"Error in workforce_analytics: {e}")
+        # Return default values on error
+        return {
+            "total_employees": 0,
+            "active_employees": 0,
+            "total_sales": 0
+        }
+
+
 @router.get("/unsold-products")
 @limiter.limit("40/minute")
 async def unsold_products(

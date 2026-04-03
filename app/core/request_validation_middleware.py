@@ -75,11 +75,24 @@ class RequestValidationMiddleware:
                         return self.create_error_response(
                             413, "JSON payload too large"
                         )
-                    # 🔥 CRITICAL FIX — reattach body so FastAPI can read it again
-                    async def receive():
-                        return {"type": "http.request", "body": body}
-                    
-                    request._receive = receive
+                    # 🔥 CRITICAL FIX — properly reattach body so FastAPI can read it again
+                    class MutableRequest(Request):
+                        def __init__(self, request: Request, body: bytes):
+                            super().__init__(scope=request.scope, receive=request._receive, send=request._send)
+                            self._body = body
+                            self._body_consumed = False
+                        
+                        async def body(self) -> bytes:
+                            if not self._body_consumed:
+                                self._body_consumed = True
+                                return self._body
+                            return b''
+                        
+                        async def receive(self):
+                            if not self._body_consumed:
+                                self._body_consumed = True
+                                return {"type": "http.request", "body": self._body}
+                            return {"type": "http.request", "body": b""}
                     
                     # Parse and validate JSON structure
                     try:
@@ -89,6 +102,11 @@ class RequestValidationMiddleware:
                         return self.create_error_response(
                             400, "Invalid JSON format"
                         )
+                    
+                    # Replace the request with our mutable version and continue
+                    mutable_request = MutableRequest(request, body)
+                    response = await call_next(mutable_request)
+                    return response
                     
                 except Exception as e:
                     # If body reading fails, continue with request

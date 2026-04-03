@@ -108,3 +108,7 @@ async def close_mongo_connection():
     if db_manager.client:
         db_manager.client.close()
         print("MongoDB connection closed")
+
+async def connect():
+    """Main connect method that tries both Atlas and local"""
+    await connect_to_mongo()

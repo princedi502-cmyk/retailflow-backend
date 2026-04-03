@@ -44,7 +44,7 @@ async def create_product(
             detail="Stock cannot be negative"
         )
     
-    if product.low_stock_threshold < 0:
+    if product.low_stock_threshold is not None and product.low_stock_threshold < 0:
         raise HTTPException(
             status_code=400,
             detail="Low stock threshold cannot be negative"
@@ -253,7 +253,7 @@ async def update_product(
             detail="Stock cannot be negative"
         )
     
-    if product.low_stock_threshold < 0:
+    if product.low_stock_threshold is not None and product.low_stock_threshold < 0:
         raise HTTPException(
             status_code=400,
             detail="Low stock threshold cannot be negative"
@@ -342,7 +342,6 @@ async def get_product_by_barcode(
     del product["_id"]
     
     return product
-
 
 
 
